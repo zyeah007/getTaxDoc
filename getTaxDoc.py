@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 # coding=utf-8
 
+'''
+由于模拟登陆总是被网站拒绝访问，所以以下代码不可行。
+'''
 import time
 from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait

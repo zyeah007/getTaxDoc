@@ -1,5 +1,13 @@
 #!/usr/bin/env python
 # coding=utf-8
+
+'''
+从中华会计网校网站的财经法规网页爬取特定名称、地区、年份的法规文档html地址列表，保存至excel文件中。
+本代码包含一个类docSpider，和两个函数crawlAll及update。实际使用过程直接调用crawlAll或者update函数。
+docSpider代码用于解析网页并保存信息
+crawlAll函数会创建一个新的法规列表文件，爬取某类法规项下全部法规列表
+update函数更新文件夹目录中已有的某个文件内已爬取的法规列表。
+'''
 import re
 from bs4 import BeautifulSoup as bs
 import time
@@ -15,7 +23,7 @@ import openpyxl
 
 class docSpider(object):
     def __init__(self, tax='', area='', year=''):
-        self.start_url = 'http://www.chinaacc.com/fagui/search.shtm'
+        self.start_url = 'http://www.chinaacc.com/fagui/search.shtm'  # 该url地址指向财经法规网页
         self.tax = tax
         self.area = area
         self.year = year
@@ -23,7 +31,7 @@ class docSpider(object):
 
     def getToBasePage(self):
         '''
-
+        进入网站的"税收法规"页面
         :return:
         '''
         try:
@@ -53,7 +61,7 @@ class docSpider(object):
 
     def genLinkFragment(self, tax, area, year):
         '''
-
+        根据类别、地区和年份的编号组成url地址中的字符串
         :param tax: 要爬取的税种名称
         :return: 目标url中的参数部分
         '''
@@ -107,7 +115,7 @@ class docSpider(object):
         df = DataFrame(data=out_list, columns=self.headers)
         fy = soup.find(class_='fy clearfix msf')
         for a in fy('a'):
-            if a.text == '下一页':
+            if a.text == '下一页':  # 只有最后一页没有"下一页"标签，故可由此判断是否存在下一页。
                 nextPage = a['href']
                 break
             else:
@@ -115,6 +123,11 @@ class docSpider(object):
         return df, nextPage
 
     def loop(self, target_url):
+        '''
+        解析单一页面信息。本函数与parseHTML函数返回数据相同，只是担心偶尔访问目标url失败，在函数内设置递归
+        :param target_url:
+        :return:
+        '''
         try:
             r = requests.get(target_url)
             r.raise_for_status()
@@ -136,10 +149,10 @@ class docSpider(object):
         :return: 一个数据列表。列表中的单个元素为一个字典，记录法规条文的标题、发布单位、日期、链接等信息
         '''
         link_fragment = self.genLinkFragment(tax, area, year)
-        target_url = self.start_url + '?' + 'page=1' + link_fragment
+        target_url = self.start_url + '?' + 'page=1' + link_fragment # 生成目标url地址
         outList = []
         pageNum = 1
-        infoCount = 0
+        infoCount = 0 # 统计爬取信息数量
         while target_url:  # 每循环一次，爬取一页的数据
             df, nextPage = self.loop(target_url)
             outList.append(df)
@@ -216,7 +229,7 @@ class docSpider(object):
     def writeData(self, df, out_path):
         '''
 
-        :param data:爬取到到全部数据，为DataFrame格式，包含标题
+        :param data:爬取到的全部数据，为DataFrame格式，包含标题
         :param out_path: 存储文件到路径
         :return: None
         '''
@@ -236,6 +249,11 @@ class docSpider(object):
 
 
 def crawlAll():
+    '''
+    创建一个新的法规列表文件，爬取某类法规项下全部法规列表。
+
+    :return:
+    '''
     taxName = input('输入要爬取的法规名称：\n')
     area = input('请输入地区：\n')
     year = input('请输入年份:\n')
@@ -259,6 +277,10 @@ def crawlAll():
 
 
 def update():
+    '''
+    由于当前技术限制，不能在程序执行中自定义待更新待法规文件名称，故暂时只能更新文件名为"*-全部.xlsx"的文件
+    :return:
+    '''
     taxName = input('请输入要更新的法规名称：\n')
     fPath = os.path.join(os.getcwd(), '%s-全部.xlsx' % taxName)
     newFileName = input('请输入新数据保存的文件名（若输入为空，则默认覆盖原数据文件）：\n')
@@ -271,4 +293,4 @@ def update():
 
 
 if __name__ == '__main__':
-    update()
+    crawlAll()
